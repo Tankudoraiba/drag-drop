@@ -11,6 +11,7 @@
   let receivedBytes = 0;
   let expectedBytes = 0;
   let filename = '';
+  let receiverReady = false; // handshake: receiver confirms ready to receive chunks
 
   const createBtn = document.getElementById('createBtn');
   const joinBtn = document.getElementById('joinBtn');
@@ -82,6 +83,10 @@
         useWsRelay = true;
         console.log('Using WS relay fallback');
       }
+      if (msg.type === 'file-ready') {
+        receiverReady = true;
+        console.log('Receiver ready (via WS)');
+      }
       if (msg.type === 'file-meta') {
         // meta over ws relay
         filename = msg.payload && msg.payload.name ? msg.payload.name : '';
@@ -89,6 +94,8 @@
         receiveBuffer = [];
         receivedBytes = 0;
         receiveInfo.textContent = `Odbieranie: ${filename} (${expectedBytes} B)`;
+        // send ready ack back to sender (via WS)
+        try { ws.send(JSON.stringify({ type: 'file-ready' })); } catch (e) { console.warn('failed to send file-ready via WS', e); }
       }
       if (msg.type === 'full') alert('Sesja jest pełna (maks 2 osoby).');
       if (msg.type === 'peer-disconnected') {
@@ -144,6 +151,12 @@
             receiveBuffer = [];
             receivedBytes = 0;
             receiveInfo.textContent = `Odbieranie: ${filename} (${expectedBytes} B)`;
+            // send ready ack back to sender (via DataChannel)
+            try { dataChannel.send(JSON.stringify({ type: 'file-ready' })); } catch (e) { console.warn('failed send file-ready', e); }
+          }
+          if (m.type === 'file-ready') {
+            receiverReady = true;
+            console.log('Receiver ready (via DataChannel)');
           }
         } catch(e){ console.warn('invalid control msg', e); }
       } else {
@@ -228,7 +241,15 @@
     if (useWsRelay || !dataChannel || dataChannel.readyState !== 'open') {
       if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Połączenie z serwerem (WS) nieaktywne');
       // send meta as control message
+      receiverReady = false;
       ws.send(JSON.stringify({ type: 'file-meta', payload: { name: fileToSend.name, size: fileToSend.size, mime: fileToSend.type } }));
+      // wait for receiverReady (with timeout)
+      const wsAckTimeout = 5000; // ms
+      const wsStart = Date.now();
+      while (!receiverReady && Date.now() - wsStart < wsAckTimeout) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+      if (!receiverReady) console.warn('No file-ready ack received via WS; proceeding anyway');
       while (offset < fileToSend.size) {
         const chunk = await fileToSend.slice(offset, offset + CHUNK_SIZE).arrayBuffer();
         // send binary frame
@@ -246,12 +267,20 @@
     }
 
     // otherwise use DataChannel
-    // send metadata first so receiver knows expected size/name
+    // send metadata first so receiver knows expected size/name and waits for ack
     try {
+      receiverReady = false;
       dataChannel.send(JSON.stringify({ type: 'file-meta', name: fileToSend.name, size: fileToSend.size, mime: fileToSend.type }));
     } catch (e) {
       console.warn('failed to send file-meta over DataChannel', e);
     }
+    // wait for receiver ack (via DataChannel) with timeout
+    const dcAckTimeout = 5000; // ms
+    const dcStart = Date.now();
+    while (!receiverReady && Date.now() - dcStart < dcAckTimeout) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+    if (!receiverReady) console.warn('No file-ready ack received via DataChannel; proceeding anyway');
     while (offset < fileToSend.size) {
       const chunk = await fileToSend.slice(offset, offset + CHUNK_SIZE).arrayBuffer();
       // flow control
