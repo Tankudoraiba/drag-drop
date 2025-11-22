@@ -22,23 +22,39 @@ function send(ws, msg) {
   }
 }
 
+function log(...args) {
+  const ts = new Date().toISOString();
+  console.log(ts, ...args);
+}
+
 wss.on('connection', (ws) => {
   ws.id = uuidv4();
   ws.roomId = null;
+  log('WS connected', { id: ws.id });
+
+  ws.on('error', (err) => {
+    log('WS error', { id: ws.id, err: err && err.message });
+  });
 
   ws.on('message', (message, isBinary) => {
     // If this is a binary frame, forward it directly to the other peer
     if (isBinary) {
+      log('binary frame received', { id: ws.id, roomId: ws.roomId, bytes: message && message.length ? message.length : (message && message.byteLength) });
       if (ws.roomId && rooms.has(ws.roomId)) {
         const arr = rooms.get(ws.roomId);
         const other = arr.find((s) => s !== ws);
         if (other && other.readyState === WebSocket.OPEN) {
           try {
             other.send(message, { binary: true });
+            log('forwarded binary frame', { from: ws.id, to: other.id, roomId: ws.roomId });
           } catch (e) {
-            console.error('forward binary error', e);
+            log('forward binary error', { err: e && e.message });
           }
+        } else {
+          log('no peer to forward binary', { id: ws.id, roomId: ws.roomId });
         }
+      } else {
+        log('binary frame with no room', { id: ws.id });
       }
       return;
     }
@@ -48,11 +64,12 @@ wss.on('connection', (ws) => {
     try {
       data = JSON.parse(message);
     } catch (e) {
-      console.warn('invalid json', e);
+      log('invalid json', { id: ws.id, err: e && e.message });
       return;
     }
 
     const { type, roomId, payload } = data;
+    log('msg', { id: ws.id, type, roomId, payloadSize: payload ? JSON.stringify(payload).length : 0 });
 
     if (type === 'join') {
       if (!roomId) return;
@@ -65,6 +82,7 @@ wss.on('connection', (ws) => {
       }
       arr.push(ws);
       send(ws, { type: arr.length === 1 ? 'created' : 'joined' });
+      log('joined room', { id: ws.id, roomId, occupants: arr.length });
       // notify other peer if present
       if (arr.length === 2) {
         const other = arr.find((s) => s !== ws);
@@ -80,11 +98,17 @@ wss.on('connection', (ws) => {
       const other = arr.find((s) => s !== ws);
       if (other && other.readyState === WebSocket.OPEN) {
         send(other, { type, payload });
+        log('relayed message', { from: ws.id, to: other.id, type, roomId: ws.roomId });
+      } else {
+        log('no peer to relay message', { id: ws.id, type, roomId: ws.roomId });
       }
+    } else {
+      log('message received but no room', { id: ws.id, type });
     }
   });
 
   ws.on('close', () => {
+    log('WS close', { id: ws.id, roomId: ws.roomId });
     if (ws.roomId && rooms.has(ws.roomId)) {
       const arr = rooms.get(ws.roomId).filter((s) => s !== ws);
       if (arr.length === 0) rooms.delete(ws.roomId);

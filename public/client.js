@@ -23,6 +23,20 @@
   const sendProgress = document.getElementById('sendProgress');
   const recvProgress = document.getElementById('recvProgress');
   const receiveInfo = document.getElementById('receiveInfo');
+  const eventLog = document.getElementById('eventLog');
+
+  function uiLog(msg) {
+    try {
+      const ts = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.textContent = `[${ts}] ${msg}`;
+      if (eventLog) {
+        eventLog.appendChild(line);
+        eventLog.scrollTop = eventLog.scrollHeight;
+      }
+      console.log(msg);
+    } catch (e) { /* ignore */ }
+  }
 
   const roomFromUrl = new URLSearchParams(location.search).get('room');
   if (roomFromUrl) roomInput.value = roomFromUrl;
@@ -32,7 +46,7 @@
     ws = new WebSocket(wsUrl);
     // prefer ArrayBuffer for binary frames
     ws.binaryType = 'arraybuffer';
-    ws.addEventListener('open', () => { console.log('WS open'); if (statusEl) statusEl.textContent = 'połączony'; });
+    ws.addEventListener('open', () => { uiLog('WS open'); if (statusEl) statusEl.textContent = 'połączony'; });
     ws.addEventListener('message', async (ev) => {
       // handle binary frames (file chunks relayed by server)
       if (ev.data instanceof ArrayBuffer) {
@@ -57,8 +71,8 @@
       }
 
       let msg = null;
-      try { msg = JSON.parse(ev.data); } catch(e){ console.warn('bad msg', e); return; }
-      console.log('ws msg', msg);
+      try { msg = JSON.parse(ev.data); } catch(e){ uiLog('bad ws msg: ' + (e && e.message)); return; }
+      uiLog('WS msg: ' + JSON.stringify(msg));
       if (msg.type === 'created') { isCaller = true; }
       if (msg.type === 'created') { if (statusEl) statusEl.textContent = 'utworzono'; }
       if (msg.type === 'peer-connected') {
@@ -81,11 +95,11 @@
       if (msg.type === 'use-ws-relay') {
         // peer requested fallback to WS relay
         useWsRelay = true;
-        console.log('Using WS relay fallback');
+        uiLog('Using WS relay fallback');
       }
       if (msg.type === 'file-ready') {
         receiverReady = true;
-        console.log('Receiver ready (via WS)');
+        uiLog('Receiver ready (via WS)');
       }
       if (msg.type === 'file-meta') {
         // meta over ws relay
@@ -95,7 +109,7 @@
         receivedBytes = 0;
         receiveInfo.textContent = `Odbieranie: ${filename} (${expectedBytes} B)`;
         // send ready ack back to sender (via WS)
-        try { ws.send(JSON.stringify({ type: 'file-ready' })); } catch (e) { console.warn('failed to send file-ready via WS', e); }
+        try { ws.send(JSON.stringify({ type: 'file-ready' })); uiLog('Sent file-ready (via WS)'); } catch (e) { uiLog('failed to send file-ready via WS: ' + (e && e.message)); }
       }
       if (msg.type === 'full') alert('Sesja jest pełna (maks 2 osoby).');
       if (msg.type === 'peer-disconnected') {
@@ -103,8 +117,8 @@
         cleanupPeer();
       }
     });
-    ws.addEventListener('close', () => { console.log('WS close'); if (statusEl) statusEl.textContent = 'rozłączony'; });
-    ws.addEventListener('error', (e) => { console.log('WS error', e); if (statusEl) statusEl.textContent = 'błąd'; });
+    ws.addEventListener('close', () => { uiLog('WS close'); if (statusEl) statusEl.textContent = 'rozłączony'; });
+    ws.addEventListener('error', (e) => { uiLog('WS error: ' + (e && e.message)); if (statusEl) statusEl.textContent = 'błąd'; });
   }
 
   function ensurePc() {
@@ -119,13 +133,13 @@
     // detect failures and trigger WS-relay fallback
     pc.oniceconnectionstatechange = () => {
       const s = pc.iceConnectionState;
-      console.log('ICE state', s);
+      uiLog('ICE state: ' + s);
       if (s === 'failed' || s === 'disconnected') {
         // request fallback: inform the peer via signaling to use ws relay
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'use-ws-relay' }));
           useWsRelay = true;
-          console.log('Requested WS relay fallback');
+          uiLog('Requested WS relay fallback');
         }
       }
     };
@@ -136,10 +150,10 @@
     dataChannel = dc;
     dataChannel.binaryType = 'arraybuffer';
     dataChannel.onopen = () => {
-      console.log('DataChannel open');
+      uiLog('DataChannel open');
       sendBtn.disabled = false;
     };
-    dataChannel.onclose = () => { console.log('DataChannel closed'); sendBtn.disabled = true; };
+    dataChannel.onclose = () => { uiLog('DataChannel closed'); sendBtn.disabled = true; };
     dataChannel.onmessage = (ev) => {
       if (typeof ev.data === 'string') {
         // control messages (json)
@@ -152,11 +166,11 @@
             receivedBytes = 0;
             receiveInfo.textContent = `Odbieranie: ${filename} (${expectedBytes} B)`;
             // send ready ack back to sender (via DataChannel)
-            try { dataChannel.send(JSON.stringify({ type: 'file-ready' })); } catch (e) { console.warn('failed send file-ready', e); }
+            try { dataChannel.send(JSON.stringify({ type: 'file-ready' })); uiLog('Sent file-ready (via DataChannel)'); } catch (e) { uiLog('failed send file-ready: ' + (e && e.message)); }
           }
           if (m.type === 'file-ready') {
             receiverReady = true;
-            console.log('Receiver ready (via DataChannel)');
+            uiLog('Receiver ready (via DataChannel)');
           }
         } catch(e){ console.warn('invalid control msg', e); }
       } else {
@@ -177,6 +191,7 @@
           receivedBytes = 0;
           expectedBytes = 0;
           recvProgress.value = 0;
+          uiLog('File received via DataChannel; ready for download: ' + a.download);
         }
       }
     };
@@ -205,9 +220,10 @@
     // auto-connect and join
     connectWs();
     if (ws && ws.readyState === WebSocket.OPEN) {
+      uiLog('sending join for new room');
       ws.send(JSON.stringify({ type: 'join', roomId: roomId }));
     } else {
-      ws.addEventListener('open', () => { ws.send(JSON.stringify({ type: 'join', roomId: roomId })); }, { once: true });
+      ws.addEventListener('open', () => { uiLog('WS open; sending join for new room'); ws.send(JSON.stringify({ type: 'join', roomId: roomId })); }, { once: true });
     }
   });
 
@@ -216,6 +232,7 @@
     if (!roomId) return alert('Podaj ID sesji');
     connectWs();
     ws.addEventListener('open', () => {
+      uiLog('WS open; sending join');
       ws.send(JSON.stringify({ type: 'join', roomId }));
     }, { once: true });
   });
@@ -242,6 +259,7 @@
       if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Połączenie z serwerem (WS) nieaktywne');
       // send meta as control message
       receiverReady = false;
+      uiLog('Sending file-meta via WS: ' + fileToSend.name + ' ' + fileToSend.size + ' B');
       ws.send(JSON.stringify({ type: 'file-meta', payload: { name: fileToSend.name, size: fileToSend.size, mime: fileToSend.type } }));
       // wait for receiverReady (with timeout)
       const wsAckTimeout = 5000; // ms
@@ -249,7 +267,7 @@
       while (!receiverReady && Date.now() - wsStart < wsAckTimeout) {
         await new Promise(r => setTimeout(r, 50));
       }
-      if (!receiverReady) console.warn('No file-ready ack received via WS; proceeding anyway');
+      if (!receiverReady) uiLog('No file-ready ack received via WS; proceeding anyway');
       while (offset < fileToSend.size) {
         const chunk = await fileToSend.slice(offset, offset + CHUNK_SIZE).arrayBuffer();
         // send binary frame
@@ -260,8 +278,10 @@
         if (ws.bufferedAmount > 16 * CHUNK_SIZE) {
           await new Promise(r => setTimeout(r, 50));
         }
+        uiLog('Sent chunk via WS: ' + offset + '/' + fileToSend.size);
       }
       alert('Wysłano plik (przez WS relay)');
+      uiLog('Finished sending file via WS');
       sendProgress.value = 0;
       return;
     }
@@ -270,8 +290,10 @@
     // send metadata first so receiver knows expected size/name and waits for ack
     try {
       receiverReady = false;
+      uiLog('Sending file-meta via DataChannel: ' + fileToSend.name + ' ' + fileToSend.size + ' B');
       dataChannel.send(JSON.stringify({ type: 'file-meta', name: fileToSend.name, size: fileToSend.size, mime: fileToSend.type }));
     } catch (e) {
+      uiLog('failed to send file-meta over DataChannel: ' + (e && e.message));
       console.warn('failed to send file-meta over DataChannel', e);
     }
     // wait for receiver ack (via DataChannel) with timeout
@@ -280,7 +302,7 @@
     while (!receiverReady && Date.now() - dcStart < dcAckTimeout) {
       await new Promise(r => setTimeout(r, 50));
     }
-    if (!receiverReady) console.warn('No file-ready ack received via DataChannel; proceeding anyway');
+    if (!receiverReady) uiLog('No file-ready ack received via DataChannel; proceeding anyway');
     while (offset < fileToSend.size) {
       const chunk = await fileToSend.slice(offset, offset + CHUNK_SIZE).arrayBuffer();
       // flow control
@@ -291,9 +313,11 @@
       dataChannel.send(chunk);
       offset += chunk.byteLength;
       sendProgress.value = (offset / fileToSend.size) * 100;
+      uiLog('Sent chunk via DataChannel: ' + offset + '/' + fileToSend.size);
     }
 
     alert('Wysłano plik (przez DataChannel)');
+    uiLog('Finished sending file via DataChannel');
     sendProgress.value = 0;
   });
 
