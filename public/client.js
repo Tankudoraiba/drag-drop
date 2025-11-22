@@ -314,8 +314,19 @@ function handleFileSelect(event) {
 }
 
 function sendFile() {
-  if (!selectedFile || !dataChannel || dataChannel.readyState !== 'open') {
-    alert('Cannot send file. Connection not ready.');
+  // Validate prerequisites for sending file
+  if (!selectedFile) {
+    alert('Please select a file first.');
+    return;
+  }
+  
+  if (!dataChannel) {
+    alert('Connection not established. Please wait for the recipient to join.');
+    return;
+  }
+  
+  if (dataChannel.readyState !== 'open') {
+    alert('Data channel is not ready. Connection state: ' + dataChannel.readyState);
     return;
   }
   
@@ -341,7 +352,9 @@ function sendFile() {
   fileInfo.textContent = `Sending: ${selectedFile.name} (${formatBytes(selectedFile.size)})`;
   
   // Read and send file in chunks
-  const chunkSize = 16384; // 16KB chunks
+  // 16KB is a good balance between memory usage and transfer speed
+  // Larger chunks may cause buffering issues, smaller chunks add overhead
+  const chunkSize = 16384; // 16KB chunks (recommended for WebRTC DataChannel)
   let offset = 0;
   
   const reader = new FileReader();
@@ -495,6 +508,8 @@ function copySessionLink() {
   function fallbackCopy() {
     sessionLinkInput.select();
     try {
+      // Note: document.execCommand('copy') is deprecated but kept as fallback
+      // for older browsers that don't support navigator.clipboard API
       document.execCommand('copy');
       copyLinkBtn.textContent = '✅ Copied!';
       setTimeout(() => {

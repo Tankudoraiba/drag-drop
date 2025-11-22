@@ -10,6 +10,10 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = process.env.PORT || 3000;
 
+// Configuration constants
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+const SESSION_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 // In-memory session storage
 const sessions = new Map();
 
@@ -182,22 +186,23 @@ wss.on('connection', (ws) => {
 });
 
 // Generate unique session ID using cryptographically secure random values
+// Uses 16 bytes (128 bits) which provides sufficient entropy to prevent collisions
+// and makes session IDs unpredictable (outputs 32 hex characters)
 function generateSessionId() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-// Clean up old sessions (older than 1 hour)
+// Clean up old sessions periodically
 setInterval(() => {
   const now = Date.now();
-  const oneHour = 60 * 60 * 1000;
   
   for (const [sessionId, session] of sessions.entries()) {
-    if (now - session.createdAt > oneHour) {
+    if (now - session.createdAt > SESSION_TIMEOUT_MS) {
       sessions.delete(sessionId);
       log('Old session cleaned up', { sessionId });
     }
   }
-}, 5 * 60 * 1000); // Check every 5 minutes
+}, SESSION_CLEANUP_INTERVAL_MS);
 
 server.listen(PORT, '0.0.0.0', () => {
   log(`Server started on port ${PORT}`);
