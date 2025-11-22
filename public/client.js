@@ -471,15 +471,39 @@ function updateConnectionStatus(connected) {
 }
 
 function copySessionLink() {
-  sessionLinkInput.select();
-  document.execCommand('copy');
-  
+  const linkText = sessionLinkInput.value;
   const originalText = copyLinkBtn.textContent;
-  copyLinkBtn.textContent = '✅ Copied!';
   
-  setTimeout(() => {
-    copyLinkBtn.textContent = originalText;
-  }, 2000);
+  // Use modern Clipboard API with fallback for older browsers
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(linkText)
+      .then(() => {
+        copyLinkBtn.textContent = '✅ Copied!';
+        setTimeout(() => {
+          copyLinkBtn.textContent = originalText;
+        }, 2000);
+      })
+      .catch(() => {
+        // Fallback to deprecated method if modern API fails
+        fallbackCopy();
+      });
+  } else {
+    // Fallback for older browsers
+    fallbackCopy();
+  }
+  
+  function fallbackCopy() {
+    sessionLinkInput.select();
+    try {
+      document.execCommand('copy');
+      copyLinkBtn.textContent = '✅ Copied!';
+      setTimeout(() => {
+        copyLinkBtn.textContent = originalText;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }
 }
 
 function formatBytes(bytes) {

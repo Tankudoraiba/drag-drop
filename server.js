@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -180,10 +181,9 @@ wss.on('connection', (ws) => {
   }
 });
 
-// Generate unique session ID
+// Generate unique session ID using cryptographically secure random values
 function generateSessionId() {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  return crypto.randomBytes(16).toString('hex');
 }
 
 // Clean up old sessions (older than 1 hour)
