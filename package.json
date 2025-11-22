@@ -1,0 +1,21 @@
+{
+  "name": "webrtc-p2p-file-transfer",
+  "version": "1.0.0",
+  "description": "Simple WebRTC P2P file transfer application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "webrtc",
+    "p2p",
+    "file-transfer"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2",
+    "express": "^4.18.2"
+  }
+}
