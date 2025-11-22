@@ -8,6 +8,15 @@ const port = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 
+// Simple status endpoint for debugging: shows rooms and occupants
+app.get('/status', (req, res) => {
+  const out = {};
+  for (const [roomId, arr] of rooms.entries()) {
+    out[roomId] = arr.length;
+  }
+  res.json({ rooms: out });
+});
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
