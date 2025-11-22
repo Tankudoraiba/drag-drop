@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prosty P2P transfer plików</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:20px}
+    .box{max-width:800px;margin:0 auto}
+    label{display:block;margin-top:10px}
+    #link{word-break:break-all}
+    progress{width:100%}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Prosty P2P transfer plików</h1>
+    <p>Cel: plik przechodzi bezpośrednio między przeglądarkami (WebRTC). Serwer pełni tylko rolę sygnalizacyjną.</p>
+
+    <div>
+      <button id="createBtn">Utwórz sesję</button>
+      <span id="link"></span>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Dołącz do sesji (wklej link lub param ?room=):</label>
+      <input id="roomInput" placeholder="ID sesji" />
+      <button id="joinBtn">Dołącz</button>
+    </div>
+
+    <hr />
+
+    <div>
+      <label>Wybierz plik do wysłania:</label>
+      <input id="fileInput" type="file" />
+      <button id="sendBtn" disabled>Wyślij plik</button>
+      <div>Postęp: <progress id="sendProgress" value="0" max="100"></progress></div>
+    </div>
+
+    <hr />
+    <div>
+      <h3>Odbiorca</h3>
+      <div id="receiveInfo">Brak pliku</div>
+      <div>Postęp: <progress id="recvProgress" value="0" max="100"></progress></div>
+    </div>
+  </div>
+
+  <script src="/client.js"></script>
+</body>
+</html>
