@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC P2P File Transfer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 WebRTC P2P File Transfer</h1>
+            <p class="subtitle">Direct file transfer between browsers</p>
+        </header>
+
+        <div id="app">
+            <!-- Start Screen -->
+            <div id="start-screen" class="screen">
+                <div class="card">
+                    <h2>Get Started</h2>
+                    <p>Choose an option to begin file transfer</p>
+                    <div class="button-group">
+                        <button id="create-session-btn" class="btn btn-primary">
+                            📤 Create Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Creator Screen -->
+            <div id="creator-screen" class="screen hidden">
+                <div class="card">
+                    <h2>Session Created</h2>
+                    <p>Share this link with the recipient:</p>
+                    <div class="link-container">
+                        <input type="text" id="session-link" readonly>
+                        <button id="copy-link-btn" class="btn btn-secondary">📋 Copy</button>
+                    </div>
+                    <div id="creator-status" class="status-box">
+                        <p>⏳ Waiting for recipient to join...</p>
+                    </div>
+                </div>
+
+                <div id="creator-transfer" class="card hidden">
+                    <h3>Send File</h3>
+                    <div class="file-input-container">
+                        <input type="file" id="file-input" class="file-input">
+                        <label for="file-input" class="file-label">
+                            Choose File
+                        </label>
+                        <button id="send-file-btn" class="btn btn-primary" disabled>
+                            📤 Send File
+                        </button>
+                    </div>
+                    <div id="sender-progress" class="progress-container hidden">
+                        <p class="file-info"></p>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <p class="progress-text">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Joiner Screen -->
+            <div id="joiner-screen" class="screen hidden">
+                <div class="card">
+                    <h2>Joining Session</h2>
+                    <div id="joiner-status" class="status-box">
+                        <p>🔗 Connecting to peer...</p>
+                    </div>
+                </div>
+
+                <div id="joiner-transfer" class="card hidden">
+                    <h3>Receive File</h3>
+                    <div id="receiver-progress" class="progress-container hidden">
+                        <p class="file-info"></p>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <p class="progress-text">0%</p>
+                    </div>
+                    <div id="download-container" class="hidden">
+                        <p class="success-message">✅ File received successfully!</p>
+                        <button id="download-btn" class="btn btn-success">💾 Download File</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Screen -->
+            <div id="error-screen" class="screen hidden">
+                <div class="card error">
+                    <h2>⚠️ Error</h2>
+                    <p id="error-message"></p>
+                    <button id="retry-btn" class="btn btn-secondary">🔄 Try Again</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>WebRTC P2P File Transfer - No server storage, direct peer-to-peer transfer</p>
+            <div id="connection-status" class="connection-status">
+                <span class="status-indicator offline"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>

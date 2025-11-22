@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  webrtc-app:
+    build: .
+    container_name: webrtc-p2p-file-transfer
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    networks:
+      - webrtc-network
+
+networks:
+  webrtc-network:
+    driver: bridge
