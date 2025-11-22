@@ -16,6 +16,7 @@
   const joinBtn = document.getElementById('joinBtn');
   const roomInput = document.getElementById('roomInput');
   const linkSpan = document.getElementById('link');
+  const statusEl = document.getElementById('status');
   const fileInput = document.getElementById('fileInput');
   const sendBtn = document.getElementById('sendBtn');
   const sendProgress = document.getElementById('sendProgress');
@@ -30,7 +31,7 @@
     ws = new WebSocket(wsUrl);
     // prefer ArrayBuffer for binary frames
     ws.binaryType = 'arraybuffer';
-    ws.addEventListener('open', () => console.log('WS open'));
+    ws.addEventListener('open', () => { console.log('WS open'); if (statusEl) statusEl.textContent = 'połączony'; });
     ws.addEventListener('message', async (ev) => {
       // handle binary frames (file chunks relayed by server)
       if (ev.data instanceof ArrayBuffer) {
@@ -58,9 +59,11 @@
       try { msg = JSON.parse(ev.data); } catch(e){ console.warn('bad msg', e); return; }
       console.log('ws msg', msg);
       if (msg.type === 'created') { isCaller = true; }
+      if (msg.type === 'created') { if (statusEl) statusEl.textContent = 'utworzono'; }
       if (msg.type === 'peer-connected') {
         if (isCaller) startCallAsCaller();
       }
+      if (msg.type === 'joined') { if (statusEl) statusEl.textContent = 'dołączono'; }
       if (msg.type === 'offer') {
         await ensurePc();
         await pc.setRemoteDescription(msg.payload);
@@ -93,6 +96,8 @@
         cleanupPeer();
       }
     });
+    ws.addEventListener('close', () => { console.log('WS close'); if (statusEl) statusEl.textContent = 'rozłączony'; });
+    ws.addEventListener('error', (e) => { console.log('WS error', e); if (statusEl) statusEl.textContent = 'błąd'; });
   }
 
   function ensurePc() {
@@ -184,6 +189,13 @@
     const roomId = crypto.randomUUID();
     linkSpan.textContent = `${location.origin}${location.pathname}?room=${roomId}`;
     roomInput.value = roomId;
+    // auto-connect and join
+    connectWs();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'join', roomId: roomId }));
+    } else {
+      ws.addEventListener('open', () => { ws.send(JSON.stringify({ type: 'join', roomId: roomId })); }, { once: true });
+    }
   });
 
   joinBtn.addEventListener('click', () => {
