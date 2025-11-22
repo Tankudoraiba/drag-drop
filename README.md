@@ -23,6 +23,15 @@ Uruchomienie w Dockerze:
 ```
 docker build -t webrtc-file-transfer .
 docker run -p 3000:3000 webrtc-file-transfer
+
+Podgląd logów kontenera (przydatne do debugowania, pokaże zdarzenia serwera):
+
+```
+docker run -d --name webrtc-file-transfer -p 3000:3000 webrtc-file-transfer
+docker logs -f webrtc-file-transfer
+```
+
+Logi serwera wypisywane są na stdout w formie znaczników czasu — zobaczysz zdarzenia `WS connected`, `joined room`, `binary frame received`, `relayed message` i ewentualne błędy.
 ```
 
 Jak używać:
