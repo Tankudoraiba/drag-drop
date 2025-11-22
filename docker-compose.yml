@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    image: drag-drop:latest
+    container_name: drag-drop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

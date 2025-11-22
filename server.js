@@ -17,6 +17,11 @@ app.get('/status', (req, res) => {
   res.json({ rooms: out });
 });
 
+// health endpoint for container healthchecks
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 

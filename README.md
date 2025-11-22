@@ -50,3 +50,22 @@ Jak używać:
 
  Konfiguracja HTTPS:
  - W środowisku produkcyjnym przeglądarki zwykle wymagają HTTPS dla funkcji WebRTC (poza `localhost`). Zamieść serwer za reverse-proxy TLS (np. nginx) lub uzupełnij konfigurację certyfikatami.
+
+Deploy w Portainer / z Git
+--------------------------------
+- Możesz zdeployować ten projekt bezpośrednio z repozytorium Git w Portainerze jako "Stack from git" — wybierz `docker-compose.yml` (plik w repo) i Portainer zbuduje obraz używając `Dockerfile`.
+- Upewnij się, że Portainer ma dostęp do internetu i że w opcjach budowy ustawione jest użycie cache/buildkit jeśli potrzebne.
+- Po wdrożeniu sprawdź status kontenera i healthcheck (używany przez `docker-compose.yml`) w panelu Portainera. Kontener będzie wykonywał `/health` co 30s.
+
+Przykładowe kroki w Portainer (skrót):
+1. Wybierz Stacks → Add stack → "Deploy from Git"
+2. Podaj URL repo (np. https://github.com/your/repo) i ścieżkę do `docker-compose.yml` (root), kliknij Deploy.
+3. Po uruchomieniu przejdź do Containers → wybierz kontener `drag-drop` → sprawdź Logs i Health status.
+
+Jeśli Portainer uruchomił starszą wersję (bez nowych endpointów), zrób rebuild staku (re-deploy) aby Portainer zbudował obraz z najnowszego kodu.
+
+Debugowanie — krótkie checklisty
+- Jeśli kontener nie startuje: sprawdź `docker logs <container>` oraz `docker ps -a` status kodu zakończenia.
+- Jeśli `/status` daje 404 wewnątrz kontenera, to znaczy, że kontener uruchamia inną wersję aplikacji — wymuś rebuild.
+- Jeśli Cloudflare/Tunnel stoi przed aplikacją, najpierw upewnij się, że `curl http://localhost:3000/status` z wnętrza kontenera aplikacji zwraca JSON (użyj `docker exec -it <app> sh` i `curl`). Jeśli to działa, problem leży w tunelu.
+
