@@ -246,6 +246,12 @@
     }
 
     // otherwise use DataChannel
+    // send metadata first so receiver knows expected size/name
+    try {
+      dataChannel.send(JSON.stringify({ type: 'file-meta', name: fileToSend.name, size: fileToSend.size, mime: fileToSend.type }));
+    } catch (e) {
+      console.warn('failed to send file-meta over DataChannel', e);
+    }
     while (offset < fileToSend.size) {
       const chunk = await fileToSend.slice(offset, offset + CHUNK_SIZE).arrayBuffer();
       // flow control
