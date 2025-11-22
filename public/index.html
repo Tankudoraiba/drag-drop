@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>P2P File Transfer</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;max-width:900px;margin:18px auto;padding:12px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    input,button{padding:8px;font-size:14px}
+    .log{background:#111;color:#eee;padding:8px;height:160px;overflow:auto;font-family:monospace;font-size:12px}
+    .box{border:1px solid #ddd;padding:12px;margin:8px 0;border-radius:6px}
+    @media(max-width:480px){body{padding:8px}}
+  </style>
+</head>
+<body>
+  <h2>P2P File Transfer (WebRTC)</h2>
+
+  <div class="box">
+    <div><strong>1.</strong> Utwórz sesję (A) lub dołącz do linku (B)</div>
+    <div class="row" style="margin-top:8px">
+      <button id="createBtn">Utwórz sesję (A)</button>
+      <input id="roomInput" placeholder="Wklej link / id sesji" style="min-width:200px" />
+      <button id="joinBtn">Dołącz (B)</button>
+    </div>
+    <div style="margin-top:8px">Link sesji: <span id="linkOut">-</span></div>
+  </div>
+
+  <div class="box">
+    <div><strong>2.</strong> Wybierz plik i wyślij (tylko A)</div>
+    <input type="file" id="fileInput" />
+    <div style="margin-top:8px">Postęp: <progress id="progress" value="0" max="100" style="width:100%"></progress></div>
+  </div>
+
+  <div class="box">
+    <div><strong>3.</strong> Logi (debug)</div>
+    <div id="log" class="log"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

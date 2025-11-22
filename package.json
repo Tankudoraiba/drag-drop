@@ -1,0 +1,16 @@
+{
+  "name": "p2p-file-transfer",
+  "version": "1.0.0",
+  "description": "Simple WebRTC P2P file transfer with WebSocket signaling",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0",
+    "ws": "^8.13.0"
+  }
+}
